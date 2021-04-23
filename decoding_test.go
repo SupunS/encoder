@@ -1,0 +1,150 @@
+package encoder
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func BenchmarkDecoding(b *testing.B) {
+
+	b.Run("encoding", func(b *testing.B) {
+
+		b.Run("normal", func(b *testing.B) {
+			encoder := NewEncoder(NewDefaultReaderWriter())
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				encoder.Encode(valueArray)
+			}
+		})
+
+		b.Run("deferred", func(b *testing.B) {
+			encoder := NewDeferredEncoder(NewDefaultReaderWriter())
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				encoder.Encode(valueArray)
+			}
+		})
+
+	})
+
+	b.Run("decoding", func(b *testing.B) {
+
+		b.Run("normal", func(b *testing.B) {
+			decoder := getDecoder()
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				decoder.Decode()
+				decoder.reset()
+			}
+		})
+
+		b.Run("deferred", func(b *testing.B) {
+			decoder := getDeferredDecoder()
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				decoder.Decode()
+				decoder.reset()
+			}
+		})
+	})
+
+	b.Run("re-encoding", func(b *testing.B) {
+
+		b.Run("normal", func(b *testing.B) {
+			decoder := getDecoder()
+			decodedValue := decoder.Decode()
+
+			r := NewDefaultReaderWriter()
+			encoder := NewEncoder(r)
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				encoder.Encode(decodedValue)
+			}
+
+		})
+
+		b.Run("deferred", func(b *testing.B) {
+
+			decoder := getDeferredDecoder()
+			decodedValue := decoder.Decode()
+
+			encoder := NewDeferredEncoder(NewDefaultReaderWriter())
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				encoder.Encode(decodedValue)
+			}
+		})
+	})
+
+}
+
+func getDecoder() *Decoder {
+	w := NewDefaultReaderWriter()
+	encoder := NewEncoder(w)
+	encoder.Encode(valueArray)
+
+	return NewDecoder(w)
+}
+
+func getDeferredDecoder() *DeferredDecoder {
+	w := NewDefaultReaderWriter()
+	encoder := NewDeferredEncoder(w)
+	encoder.Encode(valueArray)
+
+	return NewDeferredDecoder(w)
+}
+
+func TestDecoding(t *testing.T) {
+	decoder := getDecoder()
+
+	decodedValue := decoder.Decode()
+
+	// print the last value
+	array, _ := decodedValue.([]interface{})
+	lastValue := array[SIZE-1]
+	fmt.Println(lastValue)
+}
+
+func TestDeferredDecoding(t *testing.T) {
+	decoder := getDeferredDecoder()
+
+	decodedValue := decoder.Decode()
+
+	// print the last value
+	array, _ := decodedValue.([]interface{})
+	lastValue := array[SIZE-1].(*DeferredCompositeValue)
+	lastValue.ensureLoaded()
+
+	innerValue := lastValue.member(5).(*DeferredCompositeValue)
+
+	// loading outer value does not load inner value
+	assert.Nil(t, innerValue.value)
+
+	innerValue.ensureLoaded()
+
+	// now loaded
+	assert.NotNil(t, innerValue.value)
+
+	fmt.Println(lastValue.value)
+	fmt.Println(innerValue.value)
+}
