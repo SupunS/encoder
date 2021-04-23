@@ -47,12 +47,18 @@ _**NOTE:** Currently, uses a mocked byte reader/writer for writing bytes to the 
 Actual values may defer based on the low level API used for byte reading/writing._
 
 ```
-BenchmarkDecoding/encoding/normal-12  	               1	2113130420 ns/op    566249104 B/op	 4400050 allocs/op
-BenchmarkDecoding/encoding/deferred-12         	       2	1230219404 ns/op   1011646116 B/op	 5700027 allocs/op
-
+Decoding:
+---------
 BenchmarkDecoding/decoding/normal-12           	      13	  90333817 ns/op     54317676 B/op	 2500003 allocs/op
 BenchmarkDecoding/decoding/deferred-12         	     100	  12733971 ns/op      5005673 B/op	  200003 allocs/op
 
+Encoding:
+---------
+BenchmarkDecoding/encoding/normal-12  	               1	2113130420 ns/op    566249104 B/op	 4400050 allocs/op
+BenchmarkDecoding/encoding/deferred-12         	       2	1230219404 ns/op   1011646116 B/op	 5700027 allocs/op
+
+Re-encoding (encoding back a decoded one):
+-----------
 BenchmarkDecoding/re-encoding/normal-12        	       3	 436506383 ns/op    575716240 B/op	 4400020 allocs/op
 BenchmarkDecoding/re-encoding/deferred-12      	       6	 331096581 ns/op    526461602 B/op	  100011 allocs/op
 ```
