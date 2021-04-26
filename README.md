@@ -2,46 +2,48 @@
 
 A decoder that supports lazy loading.
 
-### Design:
+## Design:
 For each composite value, encode as:
 ```
 <type-tag>  <content-length>  <content>
 ```
 
-Then when decoding:
+### Decoding:
 - Read the length and, load the raw-bytes. Do not try to decode.
-- Create a new wrapper `CompositeDefferedType`, that implements the same interfaces as`CompositeType`.
+- Create a new wrapper `CompositeDeferredValue`, that implements the same interfaces as`CompositeValue`.
   - Internally holds the raw bytes.
-  - Decode the raw bytes, if the value actually is used (e.g: access a member, etc.). This again a
+  - Decode the raw bytes on-demand, if the value actually is used (e.g: access a member, etc.). This again a
     shallow loading. Only loaded upto a one-level down.
   - Decoding the raw bytes will give a `CompositeValue`. Cache it in the wrapper.
-- Once loaded, `CompositeDefferedType` acts as a delegator for `CompositeValue`.
+- Once loaded, `CompositeDeferredValue` acts as a delegator for `CompositeValue`.
     
 Example:
 
 Array with 5 composite values, after decoding:
-```
-[element-0] -> [CompositeDefferedType(only raw bytes)]
-[element-1] -> [CompositeDefferedType(only raw bytes)]
-[element-2] -> [CompositeDefferedType(only raw bytes)]
-[element-3] -> [CompositeDefferedType(only raw bytes)]
-[element-4] -> [CompositeDefferedType(only raw bytes)]
-```
 
-Getting element at index-3. and accessing it's members:
-```
-[element-0] -> [CompositeDefferedType(only raw bytes)]
-[element-1] -> [CompositeDefferedType(only raw bytes)]
-[element-2] -> [CompositeDefferedType(only raw bytes)]
-[element-3] -> [CompositeType]
-[element-4] -> [CompositeDefferedType(only raw bytes)]
-```
+| Index | Value at Index | Wrapped Content |
+| ----- | -------------- | --------------- |
+| 0 | CompositeDeferredValue | raw bytes |
+| 1 | CompositeDeferredValue | raw bytes |
+| 2 | CompositeDeferredValue | raw bytes |
+| 3 | CompositeDeferredValue | raw bytes |
+| 4 | CompositeDeferredValue | raw bytes |
 
-Encoding a decoded value:
-- For fully built values, encode them in the normal way.
-- For values that are not loaded (`CompositeDefferedType`), dump the raw bytes, as is.
+Getting element at index-3, and accessing its members (cause the element at 3 to be loaded/decoded):
 
-### Benchmark results
+| Index | Value at Index | Wrapped Content |
+| ----- | -------------- | ------- |
+| 0 | CompositeDeferredValue | raw bytes |
+| 1 | CompositeDeferredValue | raw bytes |
+| 2 | CompositeDeferredValue | raw bytes |
+| **_3_** | **_CompositeDeferredValue_** | **_CompositeValue_** |
+| 4 | CompositeDeferredValue | raw bytes |
+
+### Encoding a decoded value:
+- For fully built/loaded values, encode them in the normal way.
+- For values that are not loaded (`CompositeDeferredValue` with raw-byte content), dump the raw bytes, as is.
+
+## Benchmark results
 
 _**NOTE:** Currently, uses a mocked byte reader/writer for writing bytes to the target.
 Actual values may defer based on the low level API used for byte reading/writing._
