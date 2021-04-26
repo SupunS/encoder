@@ -68,3 +68,7 @@ func (enc *Encoder) encodeInt(value int) {
 	enc.w.WriteByte(TagInt)
 	enc.w.WriteInt(value)
 }
+
+func (enc *Encoder) reset() {
+	enc.w = NewDefaultReaderWriter()
+}

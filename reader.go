@@ -54,8 +54,7 @@ func (rw *ByteReaderWriter) ReadByte() byte {
 }
 
 func (rw *ByteReaderWriter) Peek() byte {
-	b := rw.bytes[rw.readIndex][0]
-	return b
+	return rw.bytes[rw.readIndex][0]
 }
 
 func (rw *ByteReaderWriter) ReadBytes(n int) [][]byte {
@@ -67,6 +66,10 @@ func (rw *ByteReaderWriter) ReadBytes(n int) [][]byte {
 	return b
 }
 
-func (rw *ByteReaderWriter) reset() {
+func (rw *ByteReaderWriter) ReadReset() {
 	rw.readIndex = 0
+}
+
+func (rw *ByteReaderWriter) WriteReset() {
+	rw.bytes = nil
 }

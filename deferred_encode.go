@@ -30,7 +30,7 @@ func (enc *DeferredEncoder) encodeArray(array []interface{}) {
 func (enc *DeferredEncoder) encodeComposite(value *CompositeValue) {
 	enc.w.WriteByte(TagComposite)
 
-	decodeCompositeContent(value, enc)
+	enc.encodeCompositeContent(value)
 }
 
 func (enc *DeferredEncoder) encodeDeferredComposite(deferredValue *DeferredCompositeValue) {
@@ -43,12 +43,13 @@ func (enc *DeferredEncoder) encodeDeferredComposite(deferredValue *DeferredCompo
 	}
 
 	value := deferredValue.value
-	decodeCompositeContent(value, enc)
+	enc.encodeCompositeContent(value)
 }
 
-func decodeCompositeContent(value *CompositeValue, enc *DeferredEncoder) {
+func (enc *DeferredEncoder) encodeCompositeContent(value *CompositeValue) {
 	w := NewDefaultReaderWriter()
 	subEncoder := NewDeferredEncoder(w)
+
 
 	subEncoder.encodeString(value.location)
 	subEncoder.encodeString(value.typeName)
@@ -92,6 +93,6 @@ func (enc *DeferredEncoder) encodeBytes(content [][]byte) {
 	enc.w.WriteBytes(content)
 }
 
-func (enc *DeferredEncoder) Reset() {
+func (enc *DeferredEncoder) reset() {
 	enc.w = NewDefaultReaderWriter()
 }

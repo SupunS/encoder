@@ -9,32 +9,6 @@ import (
 
 func BenchmarkDecoding(b *testing.B) {
 
-	b.Run("encoding", func(b *testing.B) {
-
-		b.Run("normal", func(b *testing.B) {
-			encoder := NewEncoder(NewDefaultReaderWriter())
-
-			b.ResetTimer()
-			b.ReportAllocs()
-
-			for i := 0; i < b.N; i++ {
-				encoder.Encode(valueArray)
-			}
-		})
-
-		b.Run("deferred", func(b *testing.B) {
-			encoder := NewDeferredEncoder(NewDefaultReaderWriter())
-
-			b.ResetTimer()
-			b.ReportAllocs()
-
-			for i := 0; i < b.N; i++ {
-				encoder.Encode(valueArray)
-			}
-		})
-
-	})
-
 	b.Run("decoding", func(b *testing.B) {
 
 		b.Run("normal", func(b *testing.B) {
@@ -62,6 +36,34 @@ func BenchmarkDecoding(b *testing.B) {
 		})
 	})
 
+	b.Run("encoding", func(b *testing.B) {
+
+		b.Run("normal", func(b *testing.B) {
+			encoder := NewEncoder(NewDefaultReaderWriter())
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				encoder.Encode(valueArray)
+				encoder.reset()
+			}
+		})
+
+		b.Run("deferred", func(b *testing.B) {
+			encoder := NewDeferredEncoder(NewDefaultReaderWriter())
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				encoder.Encode(valueArray)
+				encoder.reset()
+			}
+		})
+
+	})
+
 	b.Run("re-encoding", func(b *testing.B) {
 
 		b.Run("normal", func(b *testing.B) {
@@ -76,6 +78,7 @@ func BenchmarkDecoding(b *testing.B) {
 
 			for i := 0; i < b.N; i++ {
 				encoder.Encode(decodedValue)
+				encoder.reset()
 			}
 
 		})
@@ -92,6 +95,7 @@ func BenchmarkDecoding(b *testing.B) {
 
 			for i := 0; i < b.N; i++ {
 				encoder.Encode(decodedValue)
+				encoder.reset()
 			}
 		})
 	})

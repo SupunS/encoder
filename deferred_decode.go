@@ -72,5 +72,5 @@ func (dec *DeferredDecoder) readBytes(n int) [][]byte {
 }
 
 func (dec *DeferredDecoder) reset() {
-	dec.w.reset()
+	dec.w.ReadReset()
 }
