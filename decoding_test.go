@@ -11,7 +11,7 @@ func BenchmarkDecoding(b *testing.B) {
 
 	b.Run("decoding", func(b *testing.B) {
 
-		b.Run("normaldec", func(b *testing.B) {
+		b.Run("normal", func(b *testing.B) {
 			decoder := getDecoder()
 
 			b.ResetTimer()

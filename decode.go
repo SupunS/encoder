@@ -67,7 +67,7 @@ func (dec *Decoder) readByte() byte {
 	return dec.w.ReadByte()
 }
 
-func (dec *Decoder) readBytes(n int) [][]byte {
+func (dec *Decoder) readBytes(n int) []byte {
 	return dec.w.ReadBytes(n)
 }
 

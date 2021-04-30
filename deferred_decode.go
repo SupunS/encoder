@@ -60,7 +60,7 @@ func (dec *DeferredDecoder) readByte() byte {
 	return dec.w.ReadByte()
 }
 
-func (dec *DeferredDecoder) readBytes(n int) [][]byte {
+func (dec *DeferredDecoder) readBytes(n int) []byte {
 	return dec.w.ReadBytes(n)
 }
 

@@ -23,7 +23,7 @@ func (c *CompositeValue) member(i int) interface{} {
 }
 
 type DeferredCompositeValue struct {
-	content [][]byte
+	content []byte
 	value   *CompositeValue
 }
 
@@ -58,8 +58,8 @@ func (val *DeferredCompositeValue) ensureLoaded() {
 }
 
 type DeferredCompositeValue_V2 struct {
-	metaContent   [][]byte
-	fieldsContent [][]byte
+	metaContent   []byte
+	fieldsContent []byte
 	value         *CompositeValue
 }
 

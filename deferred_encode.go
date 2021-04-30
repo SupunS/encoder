@@ -37,21 +37,30 @@ func (enc *DeferredEncoder) encodeDeferredComposite(deferredValue *DeferredCompo
 		return
 	}
 
-	//value := deferredValue.value
-	//enc.encodeCompositeContent(value)
+	value := deferredValue.value
+	enc.encodeCompositeContent(value)
 }
 
 func (enc *DeferredEncoder) encodeCompositeContent(value *CompositeValue) {
-	w := NewDefaultReaderWriter()
-	subEncoder := NewDeferredEncoder(w)
+	// Reserve 8-bits for length
+	lengthStartIndex := enc.writeDummyLength()
 
-	subEncoder.encodeString(value.location)
-	subEncoder.encodeString(value.typeName)
-	subEncoder.encodeInt(value.kind)
-	subEncoder.encodeArray(value.fields)
+	// Write meta content
+	enc.encodeString(value.location)
+	enc.encodeString(value.typeName)
+	enc.encodeInt(value.kind)
+	enc.encodeArray(value.fields)
 
-	enc.w.WriteInt(len(w.bytes))
-	enc.encodeBytes(w.bytes)
+	// Update the size with the actual content size
+	contentLength := enc.w.writeIndex - lengthStartIndex - intLength
+	enc.encodeIntAt(contentLength, lengthStartIndex)
+}
+
+func (enc *DeferredEncoder) writeDummyLength() int {
+	lengthStartIndex := enc.w.writeIndex
+	lengthBytes := make([]byte, intLength)
+	enc.encodeBytes(lengthBytes)
+	return lengthStartIndex
 }
 
 func (enc *DeferredEncoder) encodeValue(value interface{}) {
@@ -86,7 +95,11 @@ func (enc *DeferredEncoder) encodeInt(value int) {
 	enc.w.WriteInt(value)
 }
 
-func (enc *DeferredEncoder) encodeBytes(content [][]byte) {
+func (enc *DeferredEncoder) encodeIntAt(value int, index int) {
+	enc.w.WriteIntAt(value, index)
+}
+
+func (enc *DeferredEncoder) encodeBytes(content []byte) {
 	enc.w.WriteBytes(content)
 }
 
