@@ -11,7 +11,7 @@ func BenchmarkDecoding(b *testing.B) {
 
 	b.Run("decoding", func(b *testing.B) {
 
-		b.Run("normal", func(b *testing.B) {
+		b.Run("normaldec", func(b *testing.B) {
 			decoder := getDecoder()
 
 			b.ResetTimer()
@@ -25,6 +25,18 @@ func BenchmarkDecoding(b *testing.B) {
 
 		b.Run("deferred", func(b *testing.B) {
 			decoder := getDeferredDecoder()
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				decoder.Decode()
+				decoder.reset()
+			}
+		})
+
+		b.Run("deferred_v2", func(b *testing.B) {
+			decoder := getDeferredDecoder_V2()
 
 			b.ResetTimer()
 			b.ReportAllocs()
@@ -52,6 +64,18 @@ func BenchmarkDecoding(b *testing.B) {
 
 		b.Run("deferred", func(b *testing.B) {
 			encoder := NewDeferredEncoder(NewDefaultReaderWriter())
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				encoder.Encode(valueArray)
+				encoder.reset()
+			}
+		})
+
+		b.Run("deferred_v2", func(b *testing.B) {
+			encoder := NewDeferredEncoder_V2(NewDefaultReaderWriter())
 
 			b.ResetTimer()
 			b.ReportAllocs()
@@ -98,6 +122,22 @@ func BenchmarkDecoding(b *testing.B) {
 				encoder.reset()
 			}
 		})
+
+		b.Run("deferred_v2", func(b *testing.B) {
+
+			decoder := getDeferredDecoder_V2()
+			decodedValue := decoder.Decode()
+
+			encoder := NewDeferredEncoder_V2(NewDefaultReaderWriter())
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				encoder.Encode(decodedValue)
+				encoder.reset()
+			}
+		})
 	})
 
 }
@@ -116,6 +156,14 @@ func getDeferredDecoder() *DeferredDecoder {
 	encoder.Encode(valueArray)
 
 	return NewDeferredDecoder(w)
+}
+
+func getDeferredDecoder_V2() *DeferredDecoder2 {
+	w := NewDefaultReaderWriter()
+	encoder := NewDeferredEncoder_V2(w)
+	encoder.Encode(valueArray)
+
+	return NewDeferredDecoder2(w)
 }
 
 func TestDecoding(t *testing.T) {

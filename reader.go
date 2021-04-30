@@ -1,6 +1,8 @@
 package encoder
 
-import "strconv"
+import (
+	"encoding/binary"
+)
 
 type ByteReaderWriter struct {
 	bytes     [][]byte
@@ -22,7 +24,8 @@ func (rw *ByteReaderWriter) WriteString(s string) {
 }
 
 func (rw *ByteReaderWriter) WriteInt(i int) {
-	bytes := strconv.AppendInt(nil, int64(i), 10)
+	bytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(bytes, uint64(i))
 	rw.bytes = append(rw.bytes, bytes)
 }
 
@@ -41,8 +44,7 @@ func (rw *ByteReaderWriter) ReadString() string {
 }
 
 func (rw *ByteReaderWriter) ReadInt() int {
-	s := string(rw.bytes[rw.readIndex])
-	value, _ := strconv.ParseInt(s, 10, 64)
+	value := binary.BigEndian.Uint64(rw.bytes[rw.readIndex])
 	rw.readIndex++
 	return int(value)
 }
@@ -51,10 +53,6 @@ func (rw *ByteReaderWriter) ReadByte() byte {
 	b := rw.bytes[rw.readIndex][0]
 	rw.readIndex++
 	return b
-}
-
-func (rw *ByteReaderWriter) Peek() byte {
-	return rw.bytes[rw.readIndex][0]
 }
 
 func (rw *ByteReaderWriter) ReadBytes(n int) [][]byte {

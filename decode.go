@@ -11,7 +11,7 @@ func NewDecoder(w *ByteReaderWriter) *Decoder {
 }
 
 func (dec *Decoder) Decode() interface{} {
-	b := dec.w.Peek()
+	b := dec.readByte()
 
 	switch b {
 	case TagComposite:
@@ -28,18 +28,14 @@ func (dec *Decoder) Decode() interface{} {
 }
 
 func (dec *Decoder) decodeString() string {
-	dec.readByte() // read string type tag
 	return dec.w.ReadString()
 }
 
 func (dec *Decoder) decodeInt() int {
-	dec.readByte() // read int type tag
 	return dec.w.ReadInt()
 }
 
 func (dec *Decoder) decodeComposite() *CompositeValue {
-	dec.readByte() // read composite type tag
-
 	dec.decodeInt() // ignore fields length
 
 	location := dec.decodeString()
@@ -57,9 +53,7 @@ func (dec *Decoder) decodeComposite() *CompositeValue {
 }
 
 func (dec *Decoder) decodeArray() []interface{} {
-	dec.readByte() // read array type tag
 	len := dec.decodeInt()
-
 	values := make([]interface{}, len)
 
 	for i := 0; i < len; i++ {

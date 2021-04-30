@@ -26,7 +26,6 @@ func (enc *Encoder) Encode(value interface{}) {
 }
 
 func (enc *Encoder) encodeArray(array []interface{}) {
-	enc.w.WriteByte(TagArray)
 	enc.encodeInt(len(array))
 
 	for _, element := range array {
@@ -35,24 +34,26 @@ func (enc *Encoder) encodeArray(array []interface{}) {
 }
 
 func (enc *Encoder) encodeComposite(value *CompositeValue) {
-	enc.w.WriteByte(TagComposite)
 	enc.encodeInt(encodedCompositeValueLength)
-
 	enc.encodeString(value.location)
 	enc.encodeString(value.typeName)
 	enc.encodeInt(value.kind)
-	enc.encodeValue(value.fields)
+	enc.encodeArray(value.fields)
 }
 
 func (enc *Encoder) encodeValue(value interface{}) {
 	switch val := value.(type) {
 	case *CompositeValue:
+		enc.w.WriteByte(TagComposite)
 		enc.encodeComposite(val)
 	case string:
+		enc.w.WriteByte(TagString)
 		enc.encodeString(val)
 	case int:
+		enc.w.WriteByte(TagInt)
 		enc.encodeInt(val)
 	case []interface{}:
+		enc.w.WriteByte(TagArray)
 		enc.encodeArray(val)
 	default:
 		panic(fmt.Errorf("unknown type: %s", val))
@@ -60,12 +61,10 @@ func (enc *Encoder) encodeValue(value interface{}) {
 }
 
 func (enc *Encoder) encodeString(value string) {
-	enc.w.WriteByte(TagString)
 	enc.w.WriteString(value)
 }
 
 func (enc *Encoder) encodeInt(value int) {
-	enc.w.WriteByte(TagInt)
 	enc.w.WriteInt(value)
 }
 

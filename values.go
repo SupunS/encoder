@@ -44,7 +44,6 @@ func (val *DeferredCompositeValue) ensureLoaded() {
 	location := decoder.decodeString()
 	name := decoder.decodeString()
 	kind := decoder.decodeInt()
-
 	fields := decoder.decodeArray()
 
 	val.value = &CompositeValue{
@@ -56,4 +55,44 @@ func (val *DeferredCompositeValue) ensureLoaded() {
 
 	// clear the content
 	val.content = nil
+}
+
+type DeferredCompositeValue_V2 struct {
+	metaContent   [][]byte
+	fieldsContent [][]byte
+	value         *CompositeValue
+}
+
+func (val *DeferredCompositeValue_V2) member(i int) interface{} {
+	val.ensureLoaded() // Make sure the content is built before doing any operation
+	return val.value.member(i)
+}
+
+// Perform a shallow-build of the content.
+func (val *DeferredCompositeValue_V2) ensureLoaded() {
+	if val.value != nil {
+		return
+	}
+
+	rw := NewReaderWriter(val.metaContent)
+	decoder := NewDeferredDecoder(rw)
+
+	location := decoder.decodeString()
+	name := decoder.decodeString()
+	kind := decoder.decodeInt()
+
+	rw = NewReaderWriter(val.metaContent)
+	decoder = NewDeferredDecoder(rw)
+	fields := decoder.decodeArray()
+
+	val.value = &CompositeValue{
+		location: location,
+		typeName: name,
+		kind:     kind,
+		fields:   fields,
+	}
+
+	// clear the content
+	val.metaContent = nil
+	val.fieldsContent = nil
 }

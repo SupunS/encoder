@@ -11,7 +11,7 @@ func NewDeferredDecoder(w *ByteReaderWriter) *DeferredDecoder {
 }
 
 func (dec *DeferredDecoder) Decode() interface{} {
-	b := dec.w.Peek()
+	b := dec.readByte()
 
 	switch b {
 	case TagComposite:
@@ -28,20 +28,15 @@ func (dec *DeferredDecoder) Decode() interface{} {
 }
 
 func (dec *DeferredDecoder) decodeString() string {
-	dec.readByte() // read string type tag
 	return dec.w.ReadString()
 }
 
 func (dec *DeferredDecoder) decodeInt() int {
-	dec.readByte() // read int type tag
 	return dec.w.ReadInt()
 }
 
 func (dec *DeferredDecoder) decodeComposite() *DeferredCompositeValue {
-	dec.readByte() // read composite type tag
-
 	len := dec.decodeInt() // length of content
-
 	content := dec.readBytes(len)
 
 	return &DeferredCompositeValue{
@@ -51,9 +46,7 @@ func (dec *DeferredDecoder) decodeComposite() *DeferredCompositeValue {
 }
 
 func (dec *DeferredDecoder) decodeArray() []interface{} {
-	dec.readByte() // read array type tag
 	len := dec.decodeInt()
-
 	values := make([]interface{}, len)
 
 	for i := 0; i < len; i++ {
