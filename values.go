@@ -81,7 +81,7 @@ func (val *DeferredCompositeValue_V2) ensureLoaded() {
 	name := decoder.decodeString()
 	kind := decoder.decodeInt()
 
-	rw = NewReaderWriter(val.metaContent)
+	rw = NewReaderWriter(val.fieldsContent)
 	decoder = NewDeferredDecoder(rw)
 	fields := decoder.decodeArray()
 
@@ -95,4 +95,77 @@ func (val *DeferredCompositeValue_V2) ensureLoaded() {
 	// clear the content
 	val.metaContent = nil
 	val.fieldsContent = nil
+}
+
+type DeferredCompositeValue_V3 struct {
+	content []byte
+
+	location       string
+	locationIndex  int
+	locationLoaded bool
+
+	typeName       string
+	typeNameIndex  int
+	typeNameLoaded bool
+
+	kind       int
+	kindIndex  int
+	kindLoaded bool
+
+	fieldIndices []int
+	fieldsLoaded []bool
+	fields       []interface{}
+}
+
+func (val *DeferredCompositeValue_V3) member(i int) interface{} {
+	if val.fieldsLoaded[i] {
+		return val.fields[i]
+	}
+
+	fieldIndex := val.fieldIndices[i]
+	rw := NewReaderWriter(val.content[fieldIndex:])
+	decoder := NewDeferredDecoder3(rw)
+	element := decoder.Decode()
+
+	val.fields[i] = element
+	return element
+}
+
+func (val *DeferredCompositeValue_V3) Name() string {
+	if val.typeNameLoaded {
+		return val.typeName
+	}
+
+	rw := NewReaderWriter(val.content[val.typeNameIndex:])
+	decoder := NewDeferredDecoder3(rw)
+	val.typeName = decoder.decodeString()
+	return val.typeName
+}
+
+// Perform a shallow-build of the content.
+func (val *DeferredCompositeValue_V3) ensureLoaded() {
+	// clear the content
+	val.content = nil
+}
+
+type DeferredArrayValue_V3 struct {
+	content []byte
+
+	elementIndices []int
+	elementLoaded  []bool
+	elements       []interface{}
+}
+
+func (val *DeferredArrayValue_V3) member(i int) interface{} {
+	if val.elementLoaded[i] {
+		return val.elements[i]
+	}
+
+	elementIndex := val.elementIndices[i]
+	rw := NewReaderWriter(val.content[elementIndex:])
+	decoder := NewDeferredDecoder3(rw)
+	element := decoder.Decode()
+
+	val.elements[i] = element
+	return element
 }

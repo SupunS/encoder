@@ -12,7 +12,7 @@ var valueArray interface{} = func() []interface{} {
 		values[i] = &CompositeValue{
 			location: "TestLocation",
 			typeName: "Person",
-			kind:     0,
+			kind:     999,
 			fields: []interface{}{
 				"John",
 				"Doe",
@@ -22,7 +22,7 @@ var valueArray interface{} = func() []interface{} {
 				&CompositeValue{
 					location: "TestLocation",
 					typeName: "Address",
-					kind:     0,
+					kind:     999,
 					fields: []interface{}{
 						fmt.Sprintf("No: %d", i),
 						"Vancouver",
