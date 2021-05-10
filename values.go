@@ -60,41 +60,77 @@ func (val *DeferredCompositeValue) ensureLoaded() {
 type DeferredCompositeValue_V2 struct {
 	metaContent   []byte
 	fieldsContent []byte
-	value         *CompositeValue
+
+	location string
+	typeName string
+	kind     int
+	fields   *DeferredArrayValue_V2
 }
 
 func (val *DeferredCompositeValue_V2) member(i int) interface{} {
-	val.ensureLoaded() // Make sure the content is built before doing any operation
-	return val.value.member(i)
+	val.ensureFieldsLoaded() // Make sure the content is built before doing any operation
+	return val.fields.member(i)
 }
 
-// Perform a shallow-build of the content.
-func (val *DeferredCompositeValue_V2) ensureLoaded() {
-	if val.value != nil {
+func (val *DeferredCompositeValue_V2) ensureMetaLoaded() {
+	if val.metaContent == nil {
 		return
 	}
 
 	rw := NewReaderWriter(val.metaContent)
-	decoder := NewDeferredDecoder(rw)
+	decoder := NewDeferredDecoder2(rw)
 
-	location := decoder.decodeString()
-	name := decoder.decodeString()
-	kind := decoder.decodeInt()
-
-	rw = NewReaderWriter(val.fieldsContent)
-	decoder = NewDeferredDecoder(rw)
-	fields := decoder.decodeArray()
-
-	val.value = &CompositeValue{
-		location: location,
-		typeName: name,
-		kind:     kind,
-		fields:   fields,
-	}
+	val.location = decoder.decodeString()
+	val.typeName = decoder.decodeString()
+	val.kind = decoder.decodeInt()
 
 	// clear the content
 	val.metaContent = nil
+}
+
+// Perform a shallow-build of the content.
+func (val *DeferredCompositeValue_V2) ensureFieldsLoaded() {
+	if val.fieldsContent == nil {
+		return
+	}
+
+	rw := NewReaderWriter(val.fieldsContent)
+	decoder := NewDeferredDecoder2(rw)
+	val.fields = decoder.decodeArray()
+
+	// clear the content
 	val.fieldsContent = nil
+}
+
+type DeferredArrayValue_V2 struct {
+	content  []byte
+	elements []interface{}
+}
+
+func (val *DeferredArrayValue_V2) member(i int) interface{} {
+	val.ensureLoaded()
+	return val.elements[i]
+
+}
+
+// Perform a shallow-build of the content.
+func (val *DeferredArrayValue_V2) ensureLoaded() {
+	if val.content == nil {
+		return
+	}
+
+	rw := NewReaderWriter(val.content)
+	decoder := NewDeferredDecoder2(rw)
+
+	len := decoder.decodeInt()
+	val.elements = make([]interface{}, len)
+
+	for i := 0; i < len; i++ {
+		val.elements[i] = decoder.Decode()
+	}
+
+	// clear the content
+	val.content = nil
 }
 
 type DeferredCompositeValue_V3 struct {

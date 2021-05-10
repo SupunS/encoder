@@ -52,8 +52,8 @@ func BenchmarkDecoding(b *testing.B) {
 
 			for i := 0; i < b.N; i++ {
 				decodedValue := decoder.Decode()
-				array, _ := decodedValue.([]interface{})
-				lastValue := array[SIZE-1].(*DeferredCompositeValue_V2)
+				array, _ := decodedValue.(*DeferredArrayValue_V2)
+				lastValue := array.member(SIZE - 1).(*DeferredCompositeValue_V2)
 				lastValue.member(0)
 
 				decoder.reset()
@@ -123,6 +123,90 @@ func BenchmarkDecoding(b *testing.B) {
 
 			for i := 0; i < b.N; i++ {
 				decoder.Decode()
+				decoder.reset()
+			}
+		})
+	})
+
+	b.Run("decoding all", func(b *testing.B) {
+
+		b.Run("normal", func(b *testing.B) {
+			decoder := getDecoder()
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				decodedValue := decoder.Decode()
+				array, _ := decodedValue.([]interface{})
+				for i := 0; i < SIZE; i++ {
+					lastValue := array[i].(*CompositeValue)
+					for i := 0; i < 6; i++ {
+						lastValue.member(i)
+					}
+				}
+
+				decoder.reset()
+			}
+		})
+
+		b.Run("deferred", func(b *testing.B) {
+			decoder := getDeferredDecoder()
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				decodedValue := decoder.Decode()
+				array, _ := decodedValue.([]interface{})
+				for i := 0; i < SIZE; i++ {
+					lastValue := array[i].(*DeferredCompositeValue)
+					for i := 0; i < 6; i++ {
+						lastValue.member(i)
+					}
+				}
+
+				decoder.reset()
+			}
+		})
+
+		b.Run("deferred_v2", func(b *testing.B) {
+			decoder := getDeferredDecoder_V2()
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				decodedValue := decoder.Decode()
+				array, _ := decodedValue.(*DeferredArrayValue_V2)
+
+				for i := 0; i < SIZE; i++ {
+					element := array.member(i).(*DeferredCompositeValue_V2)
+					for i := 0; i < 6; i++ {
+						element.member(i)
+					}
+				}
+
+				decoder.reset()
+			}
+		})
+
+		b.Run("deferred_v3", func(b *testing.B) {
+			decoder := getDeferredDecoder_V3()
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				decodedValue := decoder.Decode()
+				array, _ := decodedValue.(*DeferredArrayValue_V3)
+				for i := 0; i < SIZE; i++ {
+					lastValue := array.member(i).(*DeferredCompositeValue_V3)
+					for i := 0; i < 6; i++ {
+						lastValue.member(i)
+					}
+				}
+
 				decoder.reset()
 			}
 		})
@@ -231,21 +315,21 @@ func BenchmarkDecoding(b *testing.B) {
 			}
 		})
 
-		//b.Run("deferred_v3", func(b *testing.B) {
-		//
-		//	decoder := getDeferredDecoder_V3()
-		//	decodedValue := decoder.Decode()
-		//
-		//	encoder := NewDeferredEncoder_V3(NewDefaultReaderWriter())
-		//
-		//	b.ResetTimer()
-		//	b.ReportAllocs()
-		//
-		//	for i := 0; i < b.N; i++ {
-		//		encoder.Encode(decodedValue)
-		//		encoder.reset()
-		//	}
-		//})
+		b.Run("deferred_v3", func(b *testing.B) {
+
+			decoder := getDeferredDecoder_V3()
+			decodedValue := decoder.Decode()
+
+			encoder := NewDeferredEncoder_V3(NewDefaultReaderWriter())
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				encoder.Encode(decodedValue)
+				encoder.reset()
+			}
+		})
 	})
 
 }

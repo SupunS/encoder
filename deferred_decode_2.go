@@ -45,19 +45,16 @@ func (dec *DeferredDecoder2) decodeComposite() *DeferredCompositeValue_V2 {
 	return &DeferredCompositeValue_V2{
 		metaContent:   metaContent,
 		fieldsContent: fieldsContent,
-		value:         nil,
 	}
 }
 
-func (dec *DeferredDecoder2) decodeArray() []interface{} {
-	len := dec.decodeInt()
-	values := make([]interface{}, len)
+func (dec *DeferredDecoder2) decodeArray() *DeferredArrayValue_V2 {
+	contentLen := dec.decodeInt() // length of content
+	content := dec.readBytes(contentLen)
 
-	for i := 0; i < len; i++ {
-		values[i] = dec.Decode()
+	return &DeferredArrayValue_V2{
+		content: content,
 	}
-
-	return values
 }
 
 func (dec *DeferredDecoder2) readByte() byte {

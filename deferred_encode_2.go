@@ -19,11 +19,27 @@ func (enc *DeferredEncoder2) Encode(value interface{}) {
 }
 
 func (enc *DeferredEncoder2) encodeArray(array []interface{}) {
+	lengthStartIndex := enc.writeDummyLength()
+
 	enc.w.WriteInt(len(array))
 
 	for _, element := range array {
 		enc.encodeValue(element)
 	}
+
+	// Update the size with the actual content size
+	contentLength := enc.w.writeIndex - lengthStartIndex - intLength
+	enc.encodeIntAt(contentLength, lengthStartIndex)
+}
+
+func (enc *DeferredEncoder2) encodeDeferredArray(deferredValue *DeferredArrayValue_V2) {
+	// If the value is not built, then dump the content as is.
+	if deferredValue.content != nil {
+		enc.w.WriteInt(len(deferredValue.content))
+		enc.encodeBytes(deferredValue.content)
+	}
+
+	return
 }
 
 func (enc *DeferredEncoder2) encodeComposite(value *CompositeValue) {
@@ -90,6 +106,8 @@ func (enc *DeferredEncoder2) encodeValue(value interface{}) {
 
 	case *DeferredCompositeValue_V2:
 		enc.encodeDeferredComposite(val)
+	case *DeferredArrayValue_V2:
+		enc.encodeDeferredArray(val)
 
 	default:
 		panic(fmt.Errorf("unknown type: %s", val))
