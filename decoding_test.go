@@ -201,9 +201,9 @@ func BenchmarkDecoding(b *testing.B) {
 				decodedValue := decoder.Decode()
 				array, _ := decodedValue.(*DeferredArrayValue_V3)
 				for i := 0; i < SIZE; i++ {
-					lastValue := array.member(i).(*DeferredCompositeValue_V3)
+					element := array.member(i).(*DeferredCompositeValue_V3)
 					for i := 0; i < 6; i++ {
-						lastValue.member(i)
+						element.member(i)
 					}
 				}
 

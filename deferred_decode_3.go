@@ -36,6 +36,8 @@ func (dec *DeferredDecoder3) decodeInt() int {
 }
 
 func (dec *DeferredDecoder3) decodeComposite() *DeferredCompositeValue_V3 {
+	dec.decodeInt() // content length
+
 	locationIndex := dec.decodeInt()
 	typeNameIndex := dec.decodeInt()
 	kindIndex := dec.decodeInt()
@@ -62,6 +64,8 @@ func (dec *DeferredDecoder3) decodeComposite() *DeferredCompositeValue_V3 {
 }
 
 func (dec *DeferredDecoder3) decodeArray() *DeferredArrayValue_V3 {
+	_ = dec.decodeInt()
+
 	arrayLen := dec.decodeInt()
 	elementIndices := make([]int, arrayLen)
 

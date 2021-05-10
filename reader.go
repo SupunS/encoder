@@ -55,6 +55,14 @@ func (rw *ByteReaderWriter) ReadString() string {
 	return s
 }
 
+func (rw *ByteReaderWriter) ReadStringAt(index int) string {
+	length := rw.ReadInt()
+	endIndex := rw.readIndex + length
+	s := string(rw.bytes[rw.readIndex:endIndex])
+	rw.readIndex = endIndex
+	return s
+}
+
 // Reader methods
 
 func (rw *ByteReaderWriter) ReadInt() int {

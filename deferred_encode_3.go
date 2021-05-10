@@ -22,14 +22,41 @@ func (enc *DeferredEncoder3) encodeComposite(value *CompositeValue) {
 	enc.encodeCompositeContent(value)
 }
 
-func (enc *DeferredEncoder3) encodeDeferredComposite(deferredValue *DeferredCompositeValue_V2) {
-	// If the value is not built, then dump the content as is.
-	if deferredValue.metaContent != nil {
-		enc.encodeBytes(deferredValue.metaContent)
+// TODO: this is incomplete
+func (enc *DeferredEncoder3) encodeDeferredComposite(deferredValue *DeferredCompositeValue_V3) {
+	enc.encodeTypeTag(TagComposite)
+
+	rw := NewArbitraryReaderWriter(deferredValue.content)
+
+	if deferredValue.locationLoaded {
+	} else {
+		enc.w.WriteInt(enc.w.writeIndex)                                       // write the new index
+		length := rw.ReadIntAt(deferredValue.locationIndex)                    // get content length
+		enc.encodeBytes(rw.ReadBytesAt(deferredValue.locationIndex+8, length)) // copy the bytes
 	}
 
-	if deferredValue.fieldsContent != nil {
-		enc.encodeBytes(deferredValue.fieldsContent)
+	if deferredValue.typeNameLoaded {
+
+	} else {
+		enc.w.WriteInt(enc.w.writeIndex)                                       // write the new index
+		length := rw.ReadIntAt(deferredValue.locationIndex)                    // get content length
+		enc.encodeBytes(rw.ReadBytesAt(deferredValue.locationIndex+8, length)) // copy the bytes
+	}
+
+	if deferredValue.kindLoaded {
+	} else {
+		enc.w.WriteInt(enc.w.writeIndex)                                        // write the new index
+		enc.encodeBytes(rw.ReadBytesAt(deferredValue.locationIndex, intLength)) // copy the bytes
+	}
+
+	for i, fieldLoaded := range deferredValue.fieldsLoaded {
+		if fieldLoaded {
+		} else {
+			enc.w.WriteInt(enc.w.writeIndex)
+			oldIndex := deferredValue.fieldIndices[i]
+			length := rw.ReadIntAt(oldIndex)                    // get content length
+			enc.encodeBytes(rw.ReadBytesAt(oldIndex+8, length)) // copy the bytes
+		}
 	}
 
 	return
@@ -38,49 +65,75 @@ func (enc *DeferredEncoder3) encodeDeferredComposite(deferredValue *DeferredComp
 func (enc *DeferredEncoder3) encodeCompositeContent(value *CompositeValue) {
 	enc.encodeTypeTag(TagComposite)
 
-	indicesLen := len(value.fields) + 4
-	offset := indicesLen*intLength + 1 // +1 for type tag
+	metaEncoder := NewDeferredEncoder_V3(NewDefaultReaderWriter())
+
+	indexesLen := len(value.fields) + 4
+
+	// +1 for type tag
+	// +intLength for content length
+	offset := indexesLen*intLength + 1 + intLength
 
 	contentWriter := NewDefaultReaderWriter()
 	contentEnc := NewDeferredEncoder_V3(contentWriter)
 
-	enc.encodeInt(contentWriter.writeIndex + offset)
+	metaEncoder.w.WriteInt(contentWriter.writeIndex + offset)
 	contentEnc.encodeString(value.location)
 
-	enc.encodeInt(contentWriter.writeIndex + offset)
+	metaEncoder.w.WriteInt(contentWriter.writeIndex + offset)
 	contentEnc.encodeString(value.typeName)
 
-	enc.encodeInt(contentWriter.writeIndex + offset)
+	metaEncoder.w.WriteInt(contentWriter.writeIndex + offset)
 	contentEnc.encodeInt(value.kind)
 
-	enc.encodeInt(len(value.fields))
+	metaEncoder.w.WriteInt(len(value.fields))
 	for _, field := range value.fields {
 		valueIndex := contentWriter.writeIndex + offset
-		enc.encodeInt(valueIndex)
+		metaEncoder.w.WriteInt(valueIndex)
 		contentEnc.encodeValue(field)
 	}
 
+	enc.w.WriteInt(len(metaEncoder.w.bytes) + len(contentWriter.bytes))
+	enc.encodeBytes(metaEncoder.w.bytes)
 	enc.encodeBytes(contentWriter.bytes)
 }
 
 func (enc *DeferredEncoder3) encodeArray(array []interface{}) {
 	enc.encodeTypeTag(TagArray)
 
+	metaWriter := NewDefaultReaderWriter()
+	metaEncoder := NewDeferredEncoder_V3(metaWriter)
+
 	indicesLen := len(array) + 1
-	offset := indicesLen*intLength + 1 // +1 for type tag
 
-	contentWriter := NewDefaultReaderWriter()
-	contentEnc := NewDeferredEncoder_V3(contentWriter)
+	// +1 for type tag
+	// +intLength for content length
+	offset := indicesLen*intLength + 1 + intLength
 
-	enc.encodeInt(len(array))
+	elementWriter := NewDefaultReaderWriter()
+	elementEnc := NewDeferredEncoder_V3(elementWriter)
+
+	metaEncoder.w.WriteInt(len(array))
 
 	for _, element := range array {
-		valueIndex := contentWriter.writeIndex + offset
-		enc.encodeInt(valueIndex)
-		contentEnc.encodeValue(element)
+		valueIndex := elementWriter.writeIndex + offset
+		metaEncoder.w.WriteInt(valueIndex)
+		elementEnc.encodeValue(element)
 	}
 
-	enc.encodeBytes(contentWriter.bytes)
+	enc.w.WriteInt(len(metaWriter.bytes) + len(elementWriter.bytes))
+	enc.encodeBytes(metaWriter.bytes)
+	enc.encodeBytes(elementWriter.bytes)
+}
+
+// TODO:
+func (enc *DeferredEncoder3) encodeDeferredArray(deferredValue *DeferredArrayValue_V3) {
+	// If the value is not built, then dump the content as is.
+	if deferredValue.content != nil {
+		enc.w.WriteInt(len(deferredValue.content))
+		enc.encodeBytes(deferredValue.content)
+	}
+
+	return
 }
 
 func (enc *DeferredEncoder3) encodeValue(value interface{}) {
@@ -88,17 +141,18 @@ func (enc *DeferredEncoder3) encodeValue(value interface{}) {
 	case *CompositeValue:
 		enc.encodeComposite(val)
 	case string:
-		enc.encodeTypeTag(TagString)
 		enc.encodeString(val)
 	case int:
-		enc.encodeTypeTag(TagInt)
 		enc.encodeInt(val)
 	case []interface{}:
 		enc.encodeArray(val)
 
-	case *DeferredCompositeValue_V2:
-		enc.encodeTypeTag(TagComposite)
+	case *DeferredCompositeValue_V3:
 		enc.encodeDeferredComposite(val)
+
+	case *DeferredArrayValue_V3:
+		enc.encodeTypeTag(TagArray)
+		enc.encodeDeferredArray(val)
 
 	default:
 		panic(fmt.Errorf("unknown type: %s", val))
@@ -110,10 +164,12 @@ func (enc *DeferredEncoder3) encodeTypeTag(b byte) {
 }
 
 func (enc *DeferredEncoder3) encodeString(value string) {
+	enc.encodeTypeTag(TagString)
 	enc.w.WriteString(value)
 }
 
 func (enc *DeferredEncoder3) encodeInt(value int) {
+	enc.encodeTypeTag(TagInt)
 	enc.w.WriteInt(value)
 }
 
